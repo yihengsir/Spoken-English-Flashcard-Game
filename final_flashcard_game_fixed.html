@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英语口语闪卡</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- 主内容、按钮等略 -->
+    <div id="cardContainer"></div>
+    <audio id="correctSound"><source src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3" type="audio/mpeg"></audio>
+    <audio id="wrongSound"><source src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3" type="audio/mpeg"></audio>
+
+    <script src="flashcards.js"></script>
+    <script>
+    let currentCardIndex = 0;
+    let shuffledCards = [...flashcards];
+    let userStats = {
+        totalAttempts: 0,
+        correctAttempts: 0,
+        learnedWords: new Set()
+    };
+
+    const cardContainer = document.getElementById('cardContainer');
+    const correctSound = document.getElementById('correctSound');
+    const wrongSound = document.getElementById('wrongSound');
+
+    function playSound(soundElement) {
+        soundElement.currentTime = 0;
+        soundElement.play().catch(() => {});
+    }
+
+    function updateStats() {}
+
+    function renderCard() {
+        const currentCard = shuffledCards[currentCardIndex];
+        const wrongOption = flashcards.find(f => f.chinese !== currentCard.chinese).chinese;
+        const options = [currentCard.chinese, wrongOption].sort(() => Math.random() - 0.5);
+
+        const html = \`
+        <div id="currentCard" class="card-flip relative w-full h-full">
+            <div class="card-front">
+                <h2>\${currentCard.english}</h2>
+                <button class="option-btn" data-option="\${options[0]}">\${options[0]}</button>
+                <button class="option-btn" data-option="\${options[1]}">\${options[1]}</button>
+            </div>
+            <div class="card-back">
+                <div id="feedbackIcon"></div>
+                <p id="correctAnswer">\${currentCard.chinese}</p>
+                <p>\${currentCard.definition}</p>
+                <p>\${currentCard.example}</p>
+            </div>
+        </div>\`;
+        cardContainer.innerHTML = html;
+
+        document.querySelectorAll('.option-btn').forEach(btn => {
+            btn.addEventListener('click', checkAnswer);
+        });
+    }
+
+    // 修复后的 checkAnswer 逻辑
+    function checkAnswer(e) {
+        const selectedOption = e.target.dataset.option;
+        const currentCard = shuffledCards[currentCardIndex];
+        const isCorrect = selectedOption === currentCard.chinese;
+
+        userStats.totalAttempts++;
+        if (isCorrect) {
+            userStats.correctAttempts++;
+            userStats.learnedWords.add(currentCard.english);
+            playSound(correctSound);
+        } else {
+            playSound(wrongSound);
+        }
+
+        updateStats();
+
+        const card = document.getElementById('currentCard');
+        const feedbackIcon = document.getElementById('feedbackIcon');
+        const correctAnswerEl = document.getElementById('correctAnswer');
+
+        if (isCorrect) {
+            feedbackIcon.className = 'bg-green-200 text-green-600';
+            feedbackIcon.innerHTML = '<i class="fa fa-check"></i>';
+        } else {
+            feedbackIcon.className = 'bg-red-200 text-red-600';
+            feedbackIcon.innerHTML = '<i class="fa fa-times"></i>';
+            correctAnswerEl.classList.add('text-red-600', 'font-bold');
+        }
+
+        document.querySelectorAll('.option-btn').forEach(btn => {
+            btn.disabled = true;
+            if (btn.dataset.option === currentCard.chinese) {
+                btn.classList.add('bg-green-100');
+            } else if (btn.dataset.option === selectedOption) {
+                btn.classList.add('bg-red-100');
+            }
+        });
+
+        card.classList.add('card-flipped');
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        renderCard();
+    });
+    </script>
+</body>
+</html>
